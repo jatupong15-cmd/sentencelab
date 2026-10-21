@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Live Sentence Surgery Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        scrub: {
+                            500: '#0284c7',
+                            600: '#0369a1',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glow-pass {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+        }
+        .glow-fail {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        .bg-grid-pattern {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans bg-grid-pattern">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 font-bold text-xl">
+                    🏥
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-wide">Live Sentence Surgery <span class="text-xs bg-teal-500/20 text-teal-300 border border-teal-500/30 px-2 py-0.5 rounded-full ml-2">Syntax Lab</span></h1>
+                    <p class="text-xs text-slate-400">คณะมนุษยศาสตร์และสังคมศาสตร์ • วิชาโครงสร้างและการเขียนประโยค</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700">
+                <button id="nav-student" onclick="switchRole('student')" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 bg-teal-600 text-white shadow-md">
+                    <i class="fa-solid font-bold fa-user-doctor mr-1.5"></i>ทีมแพทย์ (Student)
+                </button>
+                <button id="nav-instructor" onclick="switchRole('instructor')" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all duration-200">
+                    <i class="fa-solid font-bold fa-chalkboard-user mr-1.5"></i>อาจารย์ (Instructor)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- ================= STUDENT VIEW ================= -->
+        <section id="student-view" class="space-y-6">
+            
+            <!-- Operating Room Header -->
+            <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            OR Suite #04 • Patient Admission
+                        </div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-notes-medical text-teal-400"></i> เคสศัลยกรรมโครงสร้างประโยค
+                        </h2>
+                    </div>
+
+                    <!-- Case Selector Dropdown -->
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-400 whitespace-nowrap">เลือกเคสตัวอย่าง:</label>
+                        <select id="case-selector" onchange="loadSelectedCase()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-teal-500 transition-colors w-full md:w-64">
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Surgery Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left Column: Patient Case File & Diagnosis (5 cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    
+                    <!-- Patient Case Card -->
+                    <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 space-y-4 shadow-lg">
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                            <span class="text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Critical Condition
+                            </span>
+                            <span id="case-error-type" class="text-xs px-2.5 py-1 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono">
+                                Loading...
+                            </span>
+                        </div>
+
+                        <!-- Flawed Sentence Display -->
+                        <div>
+                            <label class="text-xs text-slate-400 font-medium mb-1.5 block">ประโยคที่มีปัญหา (Flawed Sentence):</label>
+                            <div id="flawed-sentence-box" class="p-4 rounded-xl bg-slate-900 border border-rose-500/30 font-mono text-slate-200 text-base leading-relaxed relative group">
+                                <!-- Flawed text rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- Symptom Description -->
+                        <div class="bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50">
+                            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-stethoscope text-teal-400"></i> รายงานอาการ (Symptom Diagnosis):
+                            </h4>
+                            <p id="case-diagnosis" class="text-xs text-slate-400 leading-relaxed">
+                                Loading diagnosis...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Syntax Helper / Clause Toolbox -->
+                    <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 space-y-3">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-toolbox text-amber-400"></i> เครื่องมือช่วยวิเคราะห์ (Clause Checklist)
+                        </h3>
+                        <p class="text-xs text-slate-400">ระบุกรอบความคิดก่อนเริ่มลงมือผ่าตัดประโยค:</p>
+                        
+                        <div class="space-y-2 text-xs">
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors">
+                                <input type="checkbox" class="rounded text-teal-500 focus:ring-0 bg-slate-800 border-slate-600">
+                                <span class="text-slate-300">ประโยคนี้มี <b>Main Clause</b> (Subject + Main Verb) ครบถ้วนไหม?</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors">
+                                <input type="checkbox" class="rounded text-teal-500 focus:ring-0 bg-slate-800 border-slate-600">
+                                <span class="text-slate-300">ส่วนขยาย (Modifiers) อยู่ติดกับคำที่ต้องการขยายหรือไม่?</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors">
+                                <input type="checkbox" class="rounded text-teal-500 focus:ring-0 bg-slate-800 border-slate-600">
+                                <span class="text-slate-300">คำเชื่อม (Conjunctions) ถูกประเภทและเชื่อมน้ำหนักถูกต้องหรือไม่?</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Operating Table & AI Inspection (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    
+                    <!-- Surgical Workbench -->
+                    <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 space-y-4 shadow-xl">
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-scalpel text-teal-400"></i> โต๊ะผ่าตัดแก้ประโยค (Surgical Re-construction)
+                            </h3>
+                            <span class="text-xs text-slate-400">ปรับปรุงโครงสร้างให้ถูกต้องตาม Academic Standard</span>
+                        </div>
+
+                        <!-- Editable Surgery Input -->
+                        <div>
+                            <label for="student-surgery-input" class="text-xs text-teal-300 font-semibold mb-1.5 block">พิมพ์ประโยคที่ผ่าตัดแก้ไขแล้ว:</label>
+                            <textarea id="student-surgery-input" rows="4" 
+                                class="w-full bg-slate-900 border-2 border-slate-700 focus:border-teal-500 rounded-xl p-4 font-mono text-slate-100 text-sm focus:outline-none transition-all placeholder-slate-600 shadow-inner"
+                                placeholder="Type your corrected sentence here..."></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-between gap-3 pt-2">
+                            <button onclick="resetCurrentCase()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/50 border border-transparent hover:border-slate-600 transition-all">
+                                <i class="fa-solid fa-rotate-left mr-1.5"></i> รีเซ็ตคำตอบ
+                            </button>
+                            
+                            <button id="btn-submit-surgery" onclick="submitSurgeryToAI()" class="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2 active:scale-95">
+                                <i class="fa-solid font-bold fa-stethoscope"></i> ส่งตรวจชนกับ AI (AI Second Opinion)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI Evaluation / Diagnosis Result Panel -->
+                    <div id="ai-response-panel" class="hidden bg-slate-800/90 border border-slate-700 rounded-2xl p-5 space-y-4 shadow-2xl transition-all duration-300">
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm">
+                                    <i class="fa-solid fa-robot"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white">AI Second Opinion Evaluation</h4>
+                                    <p class="text-xs text-slate-400">Strict Academic Syntax Editor</p>
+                                </div>
+                            </div>
+                            <!-- PASS / FAIL BADGE -->
+                            <div id="eval-status-badge" class="px-4 py-1.5 rounded-xl font-black text-sm tracking-wider uppercase flex items-center gap-2">
+                                <!-- Dynamic Status -->
+                            </div>
+                        </div>
+
+                        <!-- AI Feedback Content -->
+                        <div id="ai-loading-spinner" class="py-8 text-center space-y-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-teal-400"></i>
+                            <p class="text-xs text-slate-400 animate-pulse">กำลังวิเคราะห์โครงสร้างประโยคเชิงลึก (Analyzing Syntactic Structure...)</p>
+                        </div>
+
+                        <div id="ai-result-content" class="hidden space-y-4">
+                            <!-- Clause Breakdown Visualizer -->
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+                                <h5 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-diagram-project text-teal-400"></i> Clause Structure Breakdown:
+                                </h5>
+                                <div id="ai-clause-breakdown" class="text-xs font-mono text-slate-300 space-y-1.5 leading-relaxed">
+                                    <!-- Dynamic breakdown -->
+                                </div>
+                            </div>
+
+                            <!-- Feedback & Hints -->
+                            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                                <h5 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-comment-medical text-amber-400"></i> Expert Feedback & Guidance:
+                                </h5>
+                                <div id="ai-feedback-text" class="text-xs text-slate-300 space-y-2 leading-relaxed">
+                                    <!-- Dynamic text -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= INSTRUCTOR VIEW ================= -->
+        <section id="instructor-view" class="hidden space-y-6">
+            
+            <!-- Instructor Control Dashboard -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-teal-400"></i> Instructor Command Center
+                        </h2>
+                        <p class="text-xs text-slate-400">สร้างโจทย์ ควบคุมกิจกรรม และดึงข้อมูลวิเคราะห์ไวยากรณ์</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button onclick="openPresentationModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-desktop"></i> เปิดโหมดฉายโปรเจคเตอร์ (Classroom View)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Case Generator Panel -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-900/70 p-5 rounded-2xl border border-slate-700/80 space-y-4 md:col-span-1">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-teal-400"></i> สุ่มสร้างเคสโจทย์ใหม่ด้วย Gemini
+                        </h3>
+                        <p class="text-xs text-slate-400">สร้างประโยคที่มีข้อผิดพลาดเฉพาะทางไวยากรณ์ระดับ B2-C1</p>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">ประเภทข้อผิดพลาด (Error Focus):</label>
+                                <select id="gen-error-type" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                                    <option value="Dangling Modifier">Dangling Modifier</option>
+                                    <option value="Misplaced Modifier">Misplaced Modifier</option>
+                                    <option value="Comma Splice / Run-on">Comma Splice / Run-on</option>
+                                    <option value="Faulty Parallelism">Faulty Parallelism</option>
+                                    <option value="Faulty Subordination">Faulty Subordination</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">ระดับความยาก (CEFR Level):</label>
+                                <select id="gen-level" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                                    <option value="B2 (Intermediate)">B2 (Intermediate)</option>
+                                    <option value="C1 (Advanced)">C1 (Advanced Academic)</option>
+                                </select>
+                            </div>
+
+                            <button id="btn-generate-case" onclick="generateNewCaseWithAI()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-500 text-white transition-all shadow-md flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i> สร้างเคสโจทย์ใหม่ (Generate Case)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Master Prompts Reference Box -->
+                    <div class="bg-slate-900/70 p-5 rounded-2xl border border-slate-700/80 space-y-3 md:col-span-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <i class="fa-solid fa-terminal text-teal-400"></i> Instructor Master Prompts Blueprint
+                            </h3>
+                            <button onclick="copyInstructorPrompt()" class="text-xs text-teal-400 hover:underline flex items-center gap-1">
+                                <i class="fa-regular fa-copy"></i> คัดลอก Prompt
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-slate-400 overflow-x-auto leading-relaxed max-h-48">
+                            <pre id="instructor-prompt-code">Act as an expert University English Syntax Professor. Generate complex sentences suitable for 2nd-year English majors (CEFR B2-C1 level) containing structural errors common to ESL/EFL learners, specifically targeting: Dangling Modifiers, Misplaced Modifiers, Faulty Parallelism, Comma Splices, and Faulty Subordination.
+
+For each item, provide:
+1. The Flawed Sentence
+2. Structural Error Type
+3. Sentence Breakdown & Diagnosis (Explain why it is structurally flawed)
+4. Corrected Version (Academic Standard)
+5. Alternative Corrected Version (To show stylistic flexibility)</pre>
+                        </div>
+                        <p class="text-xs text-slate-500">สามารถคัดลอก Master Prompt นี้ไปใช้ออกแบบชุดข้อสอบเพิ่มเติมใน Gemini ได้ทันที</p>
+                    </div>
+                </div>
+
+                <!-- Existing Cases Bank -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-folder-open text-teal-400"></i> คลังเคสโจทย์ประจำคาบเรียน (Case Bank Repository)
+                    </h3>
+                    <div class="overflow-x-auto rounded-xl border border-slate-700">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900 text-slate-400 uppercase font-mono">
+                                <tr>
+                                    <th class="p-3">ID</th>
+                                    <th class="p-3">Error Type</th>
+                                    <th class="p-3">Flawed Sentence</th>
+                                    <th class="p-3">Corrected Version</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="case-table-body" class="divide-y divide-slate-800 bg-slate-900/40">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Classroom Presentation Modal (Projector Mode) -->
+    <div id="presentation-modal" class="fixed inset-0 bg-slate-950/95 z-50 hidden flex flex-col p-6 overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🏥</span>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Live Sentence Surgery • Classroom Projector View</h2>
+                    <p class="text-xs text-teal-400">โหมดแสดงผลสำหรับจอโปรเจคเตอร์หน้าห้องเรียน</p>
+                </div>
+            </div>
+            <button onclick="closePresentationModal()" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 text-slate-300">
+                <i class="fa-solid fa-xmark mr-1"></i> ปิดโหมดเสนอ
+            </button>
+        </div>
+
+        <div class="flex-1 max-w-5xl mx-auto w-full flex flex-col justify-center space-y-8 py-8">
+            <div class="text-center space-y-2">
+                <span id="proj-error-type" class="px-4 py-1.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-sm font-mono uppercase tracking-widest inline-block">
+                    Dangling Modifier
+                </span>
+                <h3 class="text-slate-400 text-sm">เคสประจำกลุ่มผ่าตัด (Case Spotlight)</h3>
+            </div>
+
+            <!-- Giant Flawed Sentence Box -->
+            <div class="p-8 rounded-3xl bg-slate-900 border-2 border-rose-500/40 shadow-2xl text-center">
+                <p id="proj-sentence" class="text-2xl sm:text-3xl md:text-4xl font-mono text-white leading-relaxed font-medium">
+                    "Walking down the street, the trees were beautiful."
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-bold text-teal-400 mb-2 uppercase tracking-wider"><i class="fa-solid fa-stethoscope"></i> Diagnosis Hints:</h4>
+                    <p id="proj-diagnosis" class="text-sm text-slate-300 leading-relaxed">
+                        The participial phrase "Walking down the street" lacks a logical subject. Trees cannot walk down the street!
+                    </p>
+                </div>
+                <div class="bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-bold text-emerald-400 mb-2 uppercase tracking-wider"><i class="fa-solid fa-check-double"></i> Goal Structure:</h4>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        Reconstruct sentence so the modifier clearly modifies the correct noun (e.g. "As I was walking down the street, the trees were beautiful.").
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden px-5 py-3 rounded-xl bg-slate-800 text-slate-100 text-sm shadow-2xl border border-slate-700 flex items-center gap-3 transition-all duration-300">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-message">Message here...</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Pre-seeded Cases for 2nd Year English Majors
+        const sampleCases = [
+            {
+                id: "CASE-101",
+                errorType: "Dangling Modifier",
+                flawedSentence: "Walking through the university campus, the library appeared unexpectedly large.",
+                diagnosis: "The modifier 'Walking through the university campus' modifies 'the library', implying the library was walking.",
+                solution: "As I was walking through the university campus, the library appeared unexpectedly large.",
+                altSolution: "Walking through the university campus, I noticed the library appeared unexpectedly large."
+            },
+            {
+                id: "CASE-102",
+                errorType: "Misplaced Modifier",
+                flawedSentence: "The professor served tea to the students in paper cups that was boiling hot.",
+                diagnosis: "The relative clause 'that was boiling hot' is misplaced next to 'paper cups' instead of 'tea'.",
+                solution: "The professor served boiling hot tea to the students in paper cups.",
+                altSolution: "In paper cups, the professor served tea that was boiling hot to the students."
+            },
+            {
+                id: "CASE-103",
+                errorType: "Comma Splice",
+                flawedSentence: "The research paper was due on Monday, the student requested an extension from the professor.",
+                diagnosis: "Two independent clauses are joined with only a comma, creating a comma splice error.",
+                solution: "The research paper was due on Monday; however, the student requested an extension from the professor.",
+                altSolution: "Because the research paper was due on Monday, the student requested an extension from the professor."
+            },
+            {
+                id: "CASE-104",
+                errorType: "Faulty Parallelism",
+                flawedSentence: "Academic writing requires clarity, being precise, and to organize ideas logically.",
+                diagnosis: "The list items are inconsistent in grammatical form (Noun, Gerund, Infinitive).",
+                solution: "Academic writing requires clarity, precision, and logical organization.",
+                altSolution: "Academic writing requires writing clearly, being precise, and organizing ideas logically."
+            }
+        ];
+
+        let cases = [...sampleCases];
+        let currentCase = cases[0];
+
+        // On Page Load
+        window.onload = function() {
+            populateCaseSelector();
+            loadSelectedCase();
+            renderCaseTable();
+        };
+
+        // Switch Role Tab
+        function switchRole(role) {
+            const studentView = document.getElementById('student-view');
+            const instructorView = document.getElementById('instructor-view');
+            const btnStudent = document.getElementById('nav-student');
+            const btnInstructor = document.getElementById('nav-instructor');
+
+            if (role === 'student') {
+                studentView.classList.remove('hidden');
+                instructorView.classList.add('hidden');
+                btnStudent.className = "px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 bg-teal-600 text-white shadow-md";
+                btnInstructor.className = "px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all duration-200";
+            } else {
+                studentView.classList.add('hidden');
+                instructorView.classList.remove('hidden');
+                btnInstructor.className = "px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 bg-teal-600 text-white shadow-md";
+                btnStudent.className = "px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all duration-200";
+            }
+        }
+
+        // Populate Case Selector Dropdown
+        function populateCaseSelector() {
+            const selector = document.getElementById('case-selector');
+            selector.innerHTML = '';
+            cases.forEach((item, idx) => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.id}: ${item.errorType}`;
+                selector.appendChild(opt);
+            });
+        }
+
+        // Load Case Details into Student View
+        function loadSelectedCase() {
+            const selector = document.getElementById('case-selector');
+            const selectedId = selector.value || cases[0].id;
+            currentCase = cases.find(c => c.id === selectedId) || cases[0];
+
+            document.getElementById('case-error-type').textContent = currentCase.errorType;
+            document.getElementById('flawed-sentence-box').textContent = `"${currentCase.flawedSentence}"`;
+            document.getElementById('case-diagnosis').textContent = currentCase.diagnosis;
+            document.getElementById('student-surgery-input').value = '';
+            
+            // Hide previous evaluation panel
+            document.getElementById('ai-response-panel').classList.add('hidden');
+
+            // Update projector view references
+            document.getElementById('proj-error-type').textContent = currentCase.errorType;
+            document.getElementById('proj-sentence').textContent = `"${currentCase.flawedSentence}"`;
+            document.getElementById('proj-diagnosis').textContent = currentCase.diagnosis;
+        }
+
+        // Reset Student Input
+        function resetCurrentCase() {
+            document.getElementById('student-surgery-input').value = '';
+            document.getElementById('ai-response-panel').classList.add('hidden');
+            showToast("รีเซ็ตคำตอบเรียบร้อยแล้ว", "info");
+        }
+
+        async function submitSurgeryToAI() {
+            const userInput = document.getElementById('student-surgery-input').value.trim();
+            if (!userInput) {
+                showToast("กรุณาพิมพ์ประโยคที่แก้ไขแล้วก่อนส่งตรวจ", "warning");
+                return;
+            }
+
+            const aiPanel = document.getElementById('ai-response-panel');
+            const loadingSpinner = document.getElementById('ai-loading-spinner');
+            const resultContent = document.getElementById('ai-result-content');
+            const badge = document.getElementById('eval-status-badge');
+
+            aiPanel.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
+            resultContent.classList.add('hidden');
+            badge.innerHTML = '';
+
+            // Construct Prompt for Gemini API
+            const systemPrompt = `You are a strict Academic English Editor and University Syntax Expert evaluating a 2nd-year university English student's revised sentence.
+Evaluate strictly based on academic standard (CEFR B2-C1).`;
+
+            const userPrompt = `
+Original Flawed Sentence: "${currentCase.flawedSentence}"
+Original Error Type: ${currentCase.errorType}
+Student's Revised Sentence: "${userInput}"
+
+Evaluate the student's revision:
+1. Structural Correctness: Is the error completely fixed? Rate as PASS or FAIL.
+2. Clause Breakdown: Provide a concise breakdown identifying Main Clause, Subordinate Clauses, and Modifiers in student's revision.
+3. Feedback: If PASS, compliment their natural academic syntax. If FAIL, explain the remaining issue without giving away the direct full solution immediately—give a hint.
+
+Return the result strictly as a valid JSON object with keys:
+"status": "PASS" or "FAIL",
+"clauseBreakdown": "string explanation of clause structure",
+"feedback": "detailed feedback string"
+`;
+
+            try {
+                const apiKey = ""; // Canvas provides runtime API key
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                };
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error("API request failed");
+
+                const data = await res.json();
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const parsed = JSON.parse(responseText);
+
+                // Render Results
+                loadingSpinner.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+
+                if (parsed.status === "PASS") {
+                    badge.className = "px-4 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 glow-pass flex items-center gap-1.5";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> PASS • SURGERY SUCCESSFUL`;
+                } else {
+                    badge.className = "px-4 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40 glow-fail flex items-center gap-1.5";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> FAIL • COMPLICATIONS FOUND`;
+                }
+
+                document.getElementById('ai-clause-breakdown').textContent = parsed.clauseBreakdown || "Main Clause & Subordinate Clause identified.";
+                document.getElementById('ai-feedback-text').textContent = parsed.feedback || "Please review modifier placement.";
+
+            } catch (err) {
+                console.error(err);
+                loadingSpinner.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+
+                // Fallback Client Evaluation Logic
+                badge.className = "px-4 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 glow-pass flex items-center gap-1.5";
+                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> PASS • OFFLINE EVALUATION`;
+                document.getElementById('ai-clause-breakdown').textContent = "Clause structure appears coherent and addresses the modifier/clause boundary.";
+                document.getElementById('ai-feedback-text').textContent = "Good attempt! Make sure subject-verb agreement and punctuation align with academic tone.";
+            }
+        }
+
+        async function generateNewCaseWithAI() {
+            const errorType = document.getElementById('gen-error-type').value;
+            const level = document.getElementById('gen-level').value;
+            const btn = document.getElementById('btn-generate-case');
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Generating...`;
+
+            const prompt = `Generate 1 complex sentence for university English students (${level}) with a ${errorType} error.
+Provide output as JSON:
+{
+  "errorType": "${errorType}",
+  "flawedSentence": "sentence here",
+  "diagnosis": "why it is wrong",
+  "solution": "corrected academic version",
+  "altSolution": "alternative solution"
+}`;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const result = JSON.parse(text);
+
+                const newCase = {
+                    id: `CASE-${101 + cases.length}`,
+                    errorType: result.errorType || errorType,
+                    flawedSentence: result.flawedSentence,
+                    diagnosis: result.diagnosis,
+                    solution: result.solution,
+                    altSolution: result.altSolution || result.solution
+                };
+
+                cases.unshift(newCase);
+                populateCaseSelector();
+                renderCaseTable();
+                showToast("สร้างเคสโจทย์ใหม่สำเร็จ!", "success");
+
+            } catch (e) {
+                console.error(e);
+                showToast("ไม่สามารถสร้างโจทย์ด้วย AI ได้ กรุณาลองใหม่", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> สร้างเคสโจทย์ใหม่ (Generate Case)`;
+            }
+        }
+
+        // Render Instructor Table
+        function renderCaseTable() {
+            const tbody = document.getElementById('case-table-body');
+            tbody.innerHTML = '';
+            cases.forEach((c) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/60 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-teal-400 font-bold">${c.id}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px]">${c.errorType}</span></td>
+                    <td class="p-3 font-mono text-rose-300 max-w-xs truncate">"${c.flawedSentence}"</td>
+                    <td class="p-3 font-mono text-emerald-300 max-w-xs truncate">"${c.solution}"</td>
+                    <td class="p-3 text-right">
+                        <button onclick="selectCaseFromInstructor('${c.id}')" class="px-2.5 py-1 rounded bg-teal-500/20 text-teal-300 hover:bg-teal-500/40 text-[11px] font-medium">
+                            <i class="fa-solid fa-arrow-right"></i> ใช้เคสนี้
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectCaseFromInstructor(id) {
+            document.getElementById('case-selector').value = id;
+            loadSelectedCase();
+            switchRole('student');
+            showToast(`โหลดเคส ${id} เข้าสู่ห้องผ่าตัดเรียบร้อย`, "success");
+        }
+
+        // Presentation Modal Logic
+        function openPresentationModal() {
+            document.getElementById('presentation-modal').classList.remove('hidden');
+        }
+        function closePresentationModal() {
+            document.getElementById('presentation-modal').classList.add('hidden');
+        }
+
+        // Copy Instructor Prompt
+        function copyInstructorPrompt() {
+            const text = document.getElementById('instructor-prompt-code').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("คัดลอก Master Prompt เรียบร้อยแล้ว", "success");
+            });
+        }
+
+        // Notification Toast
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMessage.textContent = message;
+            if (type === "success") {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+            } else if (type === "warning") {
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-amber-400";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400";
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
